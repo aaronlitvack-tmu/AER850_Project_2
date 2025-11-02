@@ -34,9 +34,18 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
 
 
 rescale_layer = tf.keras.layers.Rescaling(1./255)
+flip_layer = tf.keras.layers.RandomFlip()
+zoom_layer = tf.keras.layers.RandomZoom(height_factor=(-0.3, -0.1))
+
+train_ds = train_ds.map(lambda x, y: (flip_layer(x), y))
+image_batchtrn, labels_batchtrn = next(iter(train_ds))
+
+train_ds = train_ds.map(lambda x, y: (zoom_layer(x), y))
+image_batchtrn, labels_batchtrn = next(iter(train_ds))
 
 train_ds = train_ds.map(lambda x, y: (rescale_layer(x), y))
 image_batchtrn, labels_batchtrn = next(iter(train_ds))
+
 
 
 val_ds = val_ds.map(lambda x, y: (rescale_layer(x), y))
@@ -46,7 +55,7 @@ image_batchval, labels_batchval = next(iter(val_ds))
 #Neural Network Architecture Design
 
 BATCH_SIZE = 32 
-EPOCHS = 15
+EPOCHS = 25
 early_stop = keras.callbacks.EarlyStopping(
     monitor="val_accuracy",
     patience=3,
@@ -54,22 +63,22 @@ early_stop = keras.callbacks.EarlyStopping(
     )
 
 mdl1 = keras.Sequential([
-    layers.Conv2D(32, (3,3), activation="leaky_relu", input_shape=(500, 500, 3)),
+    layers.Conv2D(32, (3,3), activation="relu", input_shape=(500, 500, 3)),
     layers.MaxPooling2D((2,2)),
-    layers.Conv2D(64, (3,3), activation="leaky_relu"),
+    layers.Conv2D(64, (3,3), activation="relu"),
     layers.MaxPooling2D((2,2)),
-    layers.Conv2D(128, (3,3), activation="leaky_relu"),
+    layers.Conv2D(128, (3,3), activation="relu"),
+    layers.MaxPooling2D((2,2)),
+    layers.Conv2D(128, (3,3), activation="relu"),
     layers.MaxPooling2D((2,2)),
     layers.Flatten(),
-    layers.Dense(128, activation='relu'),
     layers.Dense(64, activation='relu'),
-    layers.Dense(32, activation='relu'),
     layers.Dropout(0.3),
     layers.Dense(3, activation='softmax')    
 ])
 
-mdl1.compile(optimizer='adam',
-              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+mdl1.compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+              loss="sparse_categorical_crossentropy",
               metrics=['accuracy'])
 
 history = mdl1.fit(image_batchtrn, labels_batchtrn, epochs=EPOCHS, 
@@ -79,7 +88,7 @@ plt.plot(history.history['accuracy'], label='accuracy')
 plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
-plt.ylim([0.5, 1])
+plt.ylim([0.0, 1])
 plt.legend(loc='lower right')
 
 test_loss, test_acc = mdl1.evaluate(image_batchval,  labels_batchval, verbose=2)

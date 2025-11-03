@@ -47,14 +47,18 @@ image_batchval, labels_batchval = next(iter(val_ds))
 
 data_augmentation = keras.Sequential(
   [
+   
     layers.RandomFlip("horizontal", input_shape=(img_height, img_width, 3)),
+   
     layers.RandomRotation(0.1),
+
     layers.RandomZoom(0.1),
+    
   ]
 )
 #Neural Network Architecture Design
 
-BATCH_SIZE = 32 
+BATCH_SIZE = 32
 EPOCHS = 25
 early_stop = keras.callbacks.EarlyStopping(
     monitor="val_accuracy",
@@ -66,6 +70,7 @@ mdl1 = keras.Sequential([
     
     data_augmentation,
     layers.Rescaling(1./255, input_shape=(img_height, img_width, 3)),
+    
     layers.Conv2D(16, (3,3), activation="relu", input_shape=(500, 500, 3)),
     layers.MaxPooling2D((2,2)),
     layers.Conv2D(32, (3,3), activation="relu"),
@@ -78,7 +83,7 @@ mdl1 = keras.Sequential([
     layers.MaxPooling2D((2,2)),
     layers.Flatten(),
     layers.Dense(128, activation='relu'),
-    layers.Dropout(0.4),
+    layers.Dropout(0.4),    
     layers.Dense(3, activation='softmax')    
 ])
 
@@ -86,7 +91,7 @@ mdl1.compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3),
               loss="sparse_categorical_crossentropy",
               metrics=['accuracy'])
 
-history = mdl1.fit(image_batchtrn, labels_batchtrn, epochs=EPOCHS, 
+history = mdl1.fit(image_batchtrn, labels_batchtrn, epochs=EPOCHS,batch_size=BATCH_SIZE, 
                     validation_data=(image_batchval, labels_batchval), callbacks=[early_stop],
                     verbose=1)
 

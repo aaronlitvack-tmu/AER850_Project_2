@@ -42,51 +42,47 @@ zoom_layer = tf.keras.layers.RandomZoom(height_factor=(-0.2, 0.2))
 
 image_batchtrn, labels_batchtrn = next(iter(train_ds))
 
+#image_batchtrn = (image_batchtrn / 255.0).astype("float32")
 
 image_batchval, labels_batchval = next(iter(val_ds))
 
+#image_batchtval = (image_batchval / 255.0).astype("float32")
 
 
 data_augmentation = keras.Sequential(
   [
    
-    layers.RandomFlip("horizontal", input_shape=(img_height, img_width, 3)),
+    #layers.RandomFlip("horizontal", input_shape=(img_height, img_width, 3)),
    
     layers.RandomRotation(0.1),
 
+    #layers.RandomShear(0.1),
+
     layers.RandomZoom(0.1),
     
-    layers.Rescaling(1./255, input_shape=(img_height, img_width, 3)),
-
     
   ]
 )
 #Neural Network Architecture Design
 
 BATCH_SIZE = 32
-EPOCHS = 21
+EPOCHS = 33
 early_stop = keras.callbacks.EarlyStopping(
     monitor="val_accuracy",
-    patience=5,
+    patience=10,
     restore_best_weights=True
     )
 
 mdl1 = keras.Sequential([
-    
     data_augmentation,
-    
-    layers.Conv2D(16, (3,3), activation="relu", input_shape=(500, 500, 3)),
+    layers.Rescaling(1./255),
+    layers.Conv2D(32, (3,3), activation="relu", input_shape=(500, 500, 3)),
     layers.MaxPooling2D((2,2)),
     layers.Conv2D(32, (3,3), activation="relu"),
     layers.MaxPooling2D((2,2)),
-    layers.Conv2D(64, (3,3), activation="relu"),
-    layers.MaxPooling2D((2,2)),
-    layers.Conv2D(128, (3,3), activation="relu"),
-    layers.MaxPooling2D((2,2)),
-    layers.Conv2D(128, (3,3), activation="relu"),
-    layers.MaxPooling2D((2,2)),
     layers.Flatten(),
-    layers.Dense(128, activation='relu'),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(64, activation='relu'),
     layers.Dropout(0.4),
     layers.Dense(3, activation='softmax')    
 ])
@@ -118,3 +114,24 @@ plt.legend(loc='lower right')
 plt.title('Training and Validation Loss')
 
 test_loss, test_acc = mdl1.evaluate(image_batchval,  labels_batchval, verbose=1)
+
+test_ds = tf.keras.utils.image_dataset_from_directory(
+  "Data/test",
+  image_size=(500, 500),
+  )
+
+
+img1 = tf.keras.utils.load_img(
+    "Data/test/crack/test_crack.jpg", target_size=(500, 500)
+)
+class_names = test_ds.class_names
+
+img1_array = tf.keras.utils.img_to_array(img1)
+img1_array = tf.expand_dims(img1_array, 0)
+predictions = mdl1.predict(img1_array)
+score = tf.nn.softmax(predictions[0])
+
+print(
+    "This image most likely belongs to {} with a {:.2f} percent confidence."
+    .format(class_names[np.argmax(score)], 100 * np.max(score))
+)

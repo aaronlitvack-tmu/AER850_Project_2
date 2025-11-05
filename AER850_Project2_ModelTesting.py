@@ -25,34 +25,28 @@ img1_array = tf.expand_dims(img1_array, 0)
 data_augmentation = keras.Sequential(
   [
    
-    layers.RandomFlip("horizontal", input_shape=(500, 500, 3)),
+    #layers.RandomFlip("horizontal", input_shape=(500, 500, 3)),
    
     layers.RandomRotation(0.1),
 
     layers.RandomZoom(0.1),
     
-    layers.Rescaling(1./255, input_shape=(500, 500, 3)),
+   # layers.Rescaling(1./255, input_shape=(500, 500, 3)),
 
     
   ]
 )
 
 mdl1 = keras.Sequential([
-    
     data_augmentation,
-    
-    layers.Conv2D(16, (3,3), activation="relu", input_shape=(500, 500, 3)),
+    layers.Rescaling(1./255),
+    layers.Conv2D(32, (3,3), activation="relu", input_shape=(500, 500, 3)),
     layers.MaxPooling2D((2,2)),
     layers.Conv2D(32, (3,3), activation="relu"),
     layers.MaxPooling2D((2,2)),
-    layers.Conv2D(64, (3,3), activation="relu"),
-    layers.MaxPooling2D((2,2)),
-    layers.Conv2D(128, (3,3), activation="relu"),
-    layers.MaxPooling2D((2,2)),
-    layers.Conv2D(128, (3,3), activation="relu"),
-    layers.MaxPooling2D((2,2)),
     layers.Flatten(),
-    layers.Dense(128, activation='relu'),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(64, activation='relu'),
     layers.Dropout(0.4),
     layers.Dense(3, activation='softmax')    
 ])

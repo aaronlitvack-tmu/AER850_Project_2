@@ -34,57 +34,53 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
 
 
 rescale_layer = tf.keras.layers.Rescaling(1./255)
-flip_layer = tf.keras.layers.RandomFlip(input_shape=(img_height, img_width, 3))
-rotate_layer = tf.keras.layers.RandomRotation(factor = (-0.2, 0.3))
-zoom_layer = tf.keras.layers.RandomZoom(height_factor=(-0.2, 0.2))
+shear_layer = tf.keras.layers.RandomShear(0.1)
+zoom_layer = tf.keras.layers.RandomZoom(height_factor=(0.1))
+flip_layer = tf.keras.layers.RandomFlip(mode="horizontal")
+rotate_layer = tf.keras.layers.RandomRotation(0.1)
+
+normalized_1 = train_ds.map(lambda x, y: (shear_layer(x), y))
+normalized_2 = normalized_1.map(lambda x, y: (zoom_layer(x), y))
+normalized_3 = normalized_2.map(lambda x, y: (rescale_layer(x), y))
+normalized_4 = normalized_3.map(lambda x, y: (rotate_layer(x), y))
+normalized_ds = normalized_4.map(lambda x, y: (flip_layer(x), y))
+
+val_normalized = val_ds.map(lambda x, y: (rescale_layer(x), y))
+
+image_batchtrn, labels_batchtrn = next(iter(normalized_ds))
 
 
-
-image_batchtrn, labels_batchtrn = next(iter(train_ds))
-
-#image_batchtrn = (image_batchtrn / 255.0).astype("float32")
-
-image_batchval, labels_batchval = next(iter(val_ds))
-
-#image_batchtval = (image_batchval / 255.0).astype("float32")
+image_batchval, labels_batchval = next(iter(val_normalized))
 
 
-data_augmentation = keras.Sequential(
-  [
-   
-    #layers.RandomFlip("horizontal", input_shape=(img_height, img_width, 3)),
-   
-    layers.RandomRotation(0.1),
-
-    #layers.RandomShear(0.1),
-
-    layers.RandomZoom(0.1),
-    
-    
-  ]
-)
 #Neural Network Architecture Design
 
 BATCH_SIZE = 32
-EPOCHS = 33
+EPOCHS = 30
 early_stop = keras.callbacks.EarlyStopping(
     monitor="val_accuracy",
-    patience=10,
+    patience=7,
     restore_best_weights=True
     )
 
 mdl1 = keras.Sequential([
-    data_augmentation,
-    layers.Rescaling(1./255),
-    layers.Conv2D(32, (3,3), activation="relu", input_shape=(500, 500, 3)),
+
+    layers.Conv2D(16, (3,3), activation="relu", input_shape=(500, 500, 3)),
     layers.MaxPooling2D((2,2)),
     layers.Conv2D(32, (3,3), activation="relu"),
+    layers.AveragePooling2D((2,2)),
+    layers.Conv2D(64, (3,3), activation="relu"),
+    layers.MaxPooling2D((2,2)),
+    layers.Conv2D(64, (3,3), activation="relu"),
+    layers.AveragePooling2D((2,2)),
+    layers.Conv2D(128, (3,3), activation="relu"),
     layers.MaxPooling2D((2,2)),
     layers.Flatten(),
-    layers.Dense(64, activation='relu'),
-    layers.Dense(64, activation='relu'),
+    layers.Dense(128, activation='relu'),
     layers.Dropout(0.4),
-    layers.Dense(3, activation='softmax')    
+    layers.Dense(3, activation='softmax')  
+    
+  
 ])
 
 mdl1.compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3),
@@ -109,7 +105,7 @@ plt.plot(history.history['loss'], label='training loss')
 plt.plot(history.history['val_loss'], label = 'validation loss')
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
-plt.ylim([0.0, 5])
+plt.ylim([0.0, 6])
 plt.legend(loc='lower right')
 plt.title('Training and Validation Loss')
 
@@ -124,11 +120,40 @@ test_ds = tf.keras.utils.image_dataset_from_directory(
 img1 = tf.keras.utils.load_img(
     "Data/test/crack/test_crack.jpg", target_size=(500, 500)
 )
+img2 = tf.keras.utils.load_img(
+    "Data/test/missing-head/test_missinghead.jpg", target_size=(500, 500)
+)
+img3 = tf.keras.utils.load_img(
+    "Data/test/paint-off/test_paintoff.jpg", target_size=(500, 500)
+)
 class_names = test_ds.class_names
 
 img1_array = tf.keras.utils.img_to_array(img1)
 img1_array = tf.expand_dims(img1_array, 0)
+img1_array = img1_array/255.0
 predictions = mdl1.predict(img1_array)
+score = tf.nn.softmax(predictions[0])
+
+print(
+    "This image most likely belongs to {} with a {:.2f} percent confidence."
+    .format(class_names[np.argmax(score)], 100 * np.max(score))
+)
+
+img2_array = tf.keras.utils.img_to_array(img2)
+img2_array = tf.expand_dims(img2_array, 0)
+img2_array = img2_array/255.0
+predictions = mdl1.predict(img2_array)
+score = tf.nn.softmax(predictions[0])
+
+print(
+    "This image most likely belongs to {} with a {:.2f} percent confidence."
+    .format(class_names[np.argmax(score)], 100 * np.max(score))
+)
+
+img3_array = tf.keras.utils.img_to_array(img3)
+img3_array = tf.expand_dims(img3_array, 0)
+img3_array = img3_array/255.0
+predictions = mdl1.predict(img3_array)
 score = tf.nn.softmax(predictions[0])
 
 print(

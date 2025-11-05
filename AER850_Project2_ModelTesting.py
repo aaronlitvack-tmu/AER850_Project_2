@@ -17,41 +17,46 @@ test_ds = tf.keras.utils.image_dataset_from_directory(
 img1 = tf.keras.utils.load_img(
     "Data/test/crack/test_crack.jpg", target_size=(500, 500)
 )
+img2 = tf.keras.utils.load_img(
+    "Data/test/missing-head/test_missinghead.jpg", target_size=(500, 500)
+)
+img3 = tf.keras.utils.load_img(
+    "Data/test/paint-off/test_paintoff.jpg", target_size=(500, 500)
+)
+
 class_names = test_ds.class_names
 
 img1_array = tf.keras.utils.img_to_array(img1)
 img1_array = tf.expand_dims(img1_array, 0)
+img1_array = img1_array/255.0
 
-data_augmentation = keras.Sequential(
-  [
-   
-    #layers.RandomFlip("horizontal", input_shape=(500, 500, 3)),
-   
-    layers.RandomRotation(0.1),
 
-    layers.RandomZoom(0.1),
-    
-   # layers.Rescaling(1./255, input_shape=(500, 500, 3)),
+model =  keras.models.load_model("mdl1.keras")
 
-    
-  ]
+
+predictions = model.predict(img1_array)
+score = tf.nn.softmax(predictions[0])
+
+print(
+    "This image most likely belongs to {} with a {:.2f} percent confidence."
+    .format(class_names[np.argmax(score)], 100 * np.max(score))
 )
 
-mdl1 = keras.Sequential([
-    data_augmentation,
-    layers.Rescaling(1./255),
-    layers.Conv2D(32, (3,3), activation="relu", input_shape=(500, 500, 3)),
-    layers.MaxPooling2D((2,2)),
-    layers.Conv2D(32, (3,3), activation="relu"),
-    layers.MaxPooling2D((2,2)),
-    layers.Flatten(),
-    layers.Dense(64, activation='relu'),
-    layers.Dense(64, activation='relu'),
-    layers.Dropout(0.4),
-    layers.Dense(3, activation='softmax')    
-])
+img2_array = tf.keras.utils.img_to_array(img2)
+img2_array = tf.expand_dims(img2_array, 0)
+img2_array = img2_array/255.0
+predictions = model.predict(img2_array)
+score = tf.nn.softmax(predictions[0])
 
-predictions = mdl1.predict(img1_array)
+print(
+    "This image most likely belongs to {} with a {:.2f} percent confidence."
+    .format(class_names[np.argmax(score)], 100 * np.max(score))
+)
+
+img3_array = tf.keras.utils.img_to_array(img3)
+img3_array = tf.expand_dims(img3_array, 0)
+img3_array = img3_array/255.0
+predictions = model.predict(img3_array)
 score = tf.nn.softmax(predictions[0])
 
 print(

@@ -35,15 +35,17 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
 
 rescale_layer = tf.keras.layers.Rescaling(1./255)
 shear_layer = tf.keras.layers.RandomShear(0.1)
-zoom_layer = tf.keras.layers.RandomZoom(height_factor=(0.1))
+zoom_layer = tf.keras.layers.RandomTranslation(height_factor=(0.1), width_factor=(0.1))
 flip_layer = tf.keras.layers.RandomFlip(mode="horizontal")
 rotate_layer = tf.keras.layers.RandomRotation(0.1)
+bright_layer = tf.keras.layers.Equalization()
 
-normalized_1 = train_ds.map(lambda x, y: (shear_layer(x), y))
-normalized_2 = normalized_1.map(lambda x, y: (zoom_layer(x), y))
-normalized_3 = normalized_2.map(lambda x, y: (rescale_layer(x), y))
-normalized_4 = normalized_3.map(lambda x, y: (rotate_layer(x), y))
-normalized_ds = normalized_4.map(lambda x, y: (flip_layer(x), y))
+normalized_1 = train_ds.map(lambda x, y: (rotate_layer(x), y))
+normalized_2 = normalized_1.map(lambda x, y: (flip_layer(x), y))
+normalized_3 = normalized_2.map(lambda x, y: (zoom_layer(x), y))
+normalized_4 = normalized_3.map(lambda x, y: (bright_layer(x), y))
+normalized_5 = normalized_4.map(lambda x, y: (shear_layer(x), y))
+normalized_ds = normalized_5.map(lambda x, y: (rescale_layer(x), y))
 
 val_normalized = val_ds.map(lambda x, y: (rescale_layer(x), y))
 
@@ -72,12 +74,12 @@ mdl1 = keras.Sequential([
     layers.Conv2D(64, (3,3), activation="relu"),
     layers.MaxPooling2D((2,2)),
     layers.Conv2D(64, (3,3), activation="relu"),
-    layers.AveragePooling2D((2,2)),
+    layers.MaxPooling2D((2,2)),
     layers.Conv2D(128, (3,3), activation="relu"),
     layers.MaxPooling2D((2,2)),
     layers.Flatten(),
     layers.Dense(128, activation='relu'),
-    layers.Dropout(0.4),
+    layers.Dropout(0.3),
     layers.Dense(3, activation='softmax')  
     
   
@@ -90,6 +92,9 @@ mdl1.compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3),
 history = mdl1.fit(image_batchtrn, labels_batchtrn, epochs=EPOCHS,batch_size=BATCH_SIZE, 
                     validation_data=(image_batchval, labels_batchval), callbacks=[early_stop],
                     verbose=1)
+
+mdl1.save("mdl1.keras")
+
 plt.figure(1)
 plt.plot(history.history['accuracy'], label='training accuracy')
 plt.plot(history.history['val_accuracy'], label = 'validation accuracy')

@@ -32,7 +32,7 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
   image_size=(img_height, img_width),
   )
 
-
+#augmentation and normalization layers
 rescale_layer = tf.keras.layers.Rescaling(1./255)
 shear_layer = tf.keras.layers.RandomShear(0.1)
 zoom_layer = tf.keras.layers.RandomTranslation(height_factor=(0.1), width_factor=(0.1))
@@ -65,6 +65,7 @@ early_stop = keras.callbacks.EarlyStopping(
     restore_best_weights=True
     )
 
+#model design
 mdl1 = keras.Sequential([
 
     layers.Conv2D(16, (3,3), activation="relu", input_shape=(500, 500, 3)),
@@ -95,6 +96,7 @@ history = mdl1.fit(image_batchtrn, labels_batchtrn, epochs=EPOCHS,batch_size=BAT
 
 mdl1.save("mdl1.keras")
 
+#accuracy and loss figures
 plt.figure(1)
 plt.plot(history.history['accuracy'], label='training accuracy')
 plt.plot(history.history['val_accuracy'], label = 'validation accuracy')
@@ -115,53 +117,3 @@ plt.legend(loc='lower right')
 plt.title('Training and Validation Loss')
 
 test_loss, test_acc = mdl1.evaluate(image_batchval,  labels_batchval, verbose=1)
-
-test_ds = tf.keras.utils.image_dataset_from_directory(
-  "Data/test",
-  image_size=(500, 500),
-  )
-
-
-img1 = tf.keras.utils.load_img(
-    "Data/test/crack/test_crack.jpg", target_size=(500, 500)
-)
-img2 = tf.keras.utils.load_img(
-    "Data/test/missing-head/test_missinghead.jpg", target_size=(500, 500)
-)
-img3 = tf.keras.utils.load_img(
-    "Data/test/paint-off/test_paintoff.jpg", target_size=(500, 500)
-)
-class_names = test_ds.class_names
-
-img1_array = tf.keras.utils.img_to_array(img1)
-img1_array = tf.expand_dims(img1_array, 0)
-img1_array = img1_array/255.0
-predictions = mdl1.predict(img1_array)
-score = tf.nn.softmax(predictions[0])
-
-print(
-    "This image most likely belongs to {} with a {:.2f} percent confidence."
-    .format(class_names[np.argmax(score)], 100 * np.max(score))
-)
-
-img2_array = tf.keras.utils.img_to_array(img2)
-img2_array = tf.expand_dims(img2_array, 0)
-img2_array = img2_array/255.0
-predictions = mdl1.predict(img2_array)
-score = tf.nn.softmax(predictions[0])
-
-print(
-    "This image most likely belongs to {} with a {:.2f} percent confidence."
-    .format(class_names[np.argmax(score)], 100 * np.max(score))
-)
-
-img3_array = tf.keras.utils.img_to_array(img3)
-img3_array = tf.expand_dims(img3_array, 0)
-img3_array = img3_array/255.0
-predictions = mdl1.predict(img3_array)
-score = tf.nn.softmax(predictions[0])
-
-print(
-    "This image most likely belongs to {} with a {:.2f} percent confidence."
-    .format(class_names[np.argmax(score)], 100 * np.max(score))
-)
